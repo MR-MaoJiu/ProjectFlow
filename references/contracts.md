@@ -61,12 +61,16 @@ stage：init / research / requirements / prd / design / handoff / coding / testi
 支持 PNG/JPEG/WebP，最多 16MB，规范化保存为 PNG；文件使用内容哈希，导出历史版本不会被替换。
 
 kind=design 时 data 使用 [design-example.json](design-example.json) 的结构：viewport、nodes、interactions、states、tokens。
+高保真任务必须先阅读 [高保真 UI 规范](high-fidelity-ui.md)，默认先生成完整参考图，登记 referenceAssetId，再使用 fidelity=high 与真实独立素材。参考图随交付包固定版本携带，不能用于 image 节点冒充结构化设计。
+
 节点 type：frame/rect/text/image/vector。每个节点有唯一 id/name/x/y/width/height/fill/radius/layout/gap/padding/children。
-- text：text、fontSize。多行文本按宽度换行，溢出被裁剪，预览后调整尺寸。
-- image：assetId 引用已登记图片，居中裁切填充。
+- text：text、fontSize、fontWeight、lineHeight、letterSpacing、textAlign、verticalAlign、maxLines、textOverflow。内置中文字体真实测量；SVG 文字为视觉矢量路径，编辑文字使用原始设计节点。
+- image：assetId 引用已登记图片，支持 imageFit（cover/contain/fill）与 imagePosition。
 - vector：path 仅支持 SVG path 几何命令，不支持任意 SVG/HTML/脚本。
 - frame：layout 为 absolute/vertical/horizontal；流式布局使用 padding 与 gap。首版不支持完整约束求解或复杂组件变体。
-- 单页最多 500 节点、20 层；视口最大 4096×4096。
+- 所有节点支持 stroke/strokeWidth、opacity、shadow 和线性 gradient；frame 支持 alignItems/justifyContent。
+- 单页最多 500 节点、20 层、50,000 文字；视口最大 4096×4096。
+- artifact 读取结果附带 quality；高保真确认和交付会检查文字裁切、缺失素材及 visualReview。旧设计默认 draft，不强行改变原有数据。
 
 `projectflow_preview {project, ref, nodeId?}` 返回图像，必须查看真实预览再声称视觉检查完成。
 `projectflow_export {project, ref?, nodeId?, assetId?, format:"png"|"svg", scale:1|2|3}` 返回 `.projectflow/exports` 内绝对路径。位图节点拒绝矢量 SVG；PNG 倍率不增加原始细节。独立图片优先按 assetId 导出，避免混入 UI 文案。

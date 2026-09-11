@@ -88,7 +88,29 @@ export const refSchema = z.object({
   version: z.number().int().positive(),
 });
 export type Ref = z.infer<typeof refSchema>;
-const color = z.string().regex(/^(#[0-9a-fA-F]{3,8}|none|transparent)$/);
+const color = z
+  .string()
+  .regex(
+    /^(#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|none|transparent)$/,
+  );
+export const gradientSchema = z
+  .object({
+    angle: z.number().min(-360).max(360),
+    stops: z
+      .array(z.object({ offset: z.number().min(0).max(1), color }))
+      .min(2)
+      .max(8),
+  })
+  .strict();
+export const shadowSchema = z
+  .object({
+    color,
+    blur: z.number().min(0).max(100),
+    x: z.number().min(-100).max(100),
+    y: z.number().min(-100).max(100),
+    opacity: z.number().min(0).max(1).default(0.15),
+  })
+  .strict();
 export const nodeSchema: z.ZodType<DesignNode, z.ZodTypeDef, unknown> = z.lazy(
   () =>
     z
@@ -104,6 +126,38 @@ export const nodeSchema: z.ZodType<DesignNode, z.ZodTypeDef, unknown> = z.lazy(
         radius: z.number().min(0).max(256).default(0),
         text: z.string().max(10000).optional(),
         fontSize: z.number().min(6).max(256).optional(),
+        fontWeight: z.number().int().min(100).max(900).optional(),
+        lineHeight: z.number().positive().max(512).optional(),
+        letterSpacing: z.number().min(-10).max(40).optional(),
+        textAlign: z.enum(["left", "center", "right"]).optional(),
+        verticalAlign: z.enum(["top", "middle", "bottom"]).optional(),
+        maxLines: z.number().int().min(1).max(200).optional(),
+        textOverflow: z.enum(["clip", "ellipsis"]).optional(),
+        stroke: color.optional(),
+        strokeWidth: z.number().min(0).max(32).optional(),
+        opacity: z.number().min(0).max(1).optional(),
+        shadow: shadowSchema.optional(),
+        gradient: gradientSchema.optional(),
+        imageFit: z.enum(["cover", "contain", "fill"]).optional(),
+        imagePosition: z
+          .enum(["center", "top", "bottom", "left", "right"])
+          .optional(),
+        clipContent: z.boolean().optional(),
+        alignItems: z.enum(["start", "center", "end", "stretch"]).optional(),
+        justifyContent: z
+          .enum(["start", "center", "end", "space-between"])
+          .optional(),
+        role: z
+          .enum([
+            "surface",
+            "heading",
+            "body",
+            "button",
+            "icon",
+            "product-image",
+            "illustration",
+          ])
+          .optional(),
         assetId: z
           .string()
           .regex(/^asset_[a-f0-9-]+$/)
@@ -134,6 +188,31 @@ export interface DesignNode {
   radius: number;
   text?: string;
   fontSize?: number;
+  fontWeight?: number;
+  lineHeight?: number;
+  letterSpacing?: number;
+  textAlign?: "left" | "center" | "right";
+  verticalAlign?: "top" | "middle" | "bottom";
+  maxLines?: number;
+  textOverflow?: "clip" | "ellipsis";
+  stroke?: string;
+  strokeWidth?: number;
+  opacity?: number;
+  shadow?: z.infer<typeof shadowSchema>;
+  gradient?: z.infer<typeof gradientSchema>;
+  imageFit?: "cover" | "contain" | "fill";
+  imagePosition?: "center" | "top" | "bottom" | "left" | "right";
+  clipContent?: boolean;
+  alignItems?: "start" | "center" | "end" | "stretch";
+  justifyContent?: "start" | "center" | "end" | "space-between";
+  role?:
+    | "surface"
+    | "heading"
+    | "body"
+    | "button"
+    | "icon"
+    | "product-image"
+    | "illustration";
   assetId?: string;
   path?: string;
   layout: "absolute" | "vertical" | "horizontal";
@@ -151,6 +230,21 @@ export const designSchema = z
     interactions: z.string().max(30000).default(""),
     states: z.array(z.string()).default(["默认"]),
     tokens: z.record(z.string()).default({}),
+    fidelity: z.enum(["draft", "high"]).optional(),
+    assetRequirements: z
+      .array(
+        z.object({
+          id: z.string().min(1),
+          role: z.enum(["product-image", "illustration", "icon", "hero"]),
+          description: z.string().min(1),
+          assetId: z.string().optional(),
+        }),
+      )
+      .max(100)
+      .optional(),
+    referenceAssetId: z.string().min(1).optional(),
+    visualReview: z.string().max(10000).optional(),
+    noAssetsReason: z.string().max(1000).optional(),
   })
   .strict();
 export type DesignDocument = z.infer<typeof designSchema>;
@@ -311,16 +405,48 @@ export function layoutNodes(
   nodes: DesignNode[],
   parent?: DesignNode,
 ): DesignNode[] {
-  let cursor = parent?.padding ?? 0;
+  const flow = parent && parent.layout !== "absolute";
+  const horizontal = parent?.layout === "horizontal";
+  const padding = parent?.padding ?? 0;
+  let gap = parent?.gap ?? 0;
+  const total = nodes.reduce(
+    (sum, n) => sum + (horizontal ? n.width : n.height),
+    0,
+  );
+  const available = parent
+    ? (horizontal ? parent.width : parent.height) - padding * 2
+    : 0;
+  const free = available - total - gap * Math.max(0, nodes.length - 1);
+  if (parent?.justifyContent === "space-between" && nodes.length > 1)
+    gap += Math.max(0, free) / (nodes.length - 1);
+  let cursor =
+    padding +
+    (parent?.justifyContent === "center"
+      ? Math.max(0, free) / 2
+      : parent?.justifyContent === "end"
+        ? Math.max(0, free)
+        : 0);
   return nodes.map((n) => {
-    let x = n.x,
-      y = n.y;
-    if (parent && parent.layout !== "absolute") {
-      x = parent.layout === "horizontal" ? cursor : parent.padding;
-      y = parent.layout === "vertical" ? cursor : parent.padding;
-      cursor +=
-        (parent.layout === "horizontal" ? n.width : n.height) + parent.gap;
+    let { x, y, width, height } = n;
+    if (flow && parent) {
+      const cross = (horizontal ? parent.height : parent.width) - padding * 2;
+      if (parent.alignItems === "stretch") {
+        if (horizontal) height = Math.max(1, cross);
+        else width = Math.max(1, cross);
+      }
+      const space = cross - (horizontal ? height : width);
+      const crossOffset =
+        padding +
+        (parent.alignItems === "center"
+          ? space / 2
+          : parent.alignItems === "end"
+            ? space
+            : 0);
+      x = horizontal ? cursor : crossOffset;
+      y = horizontal ? crossOffset : cursor;
+      cursor += (horizontal ? width : height) + gap;
     }
-    return { ...n, x, y, children: layoutNodes(n.children, n) };
+    const positioned = { ...n, x, y, width, height };
+    return { ...positioned, children: layoutNodes(n.children, positioned) };
   });
 }

@@ -87,3 +87,25 @@ test("HTTP 验证令牌、Origin、Host、路径和版本冲突", async (t) => {
     403,
   );
 });
+
+test("未保存的设计预览使用真实渲染且不改变项目版本", async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "projectflow-preview-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const workspace = new Workspace();
+  const bound = await workspace.bind(root, "草稿预览");
+  const app = await startWeb(workspace, path.resolve("dist/web"));
+  t.after(() => new Promise<void>((resolve) => app.server.close(() => resolve())));
+  const headers = { Authorization: `Bearer ${app.token}`, "Content-Type": "application/json" };
+  const { blankDesign, baseNode } = await import("../src/shared/model");
+  const design = { ...blankDesign, viewport: { width: 300, height: 100 }, nodes: [{ ...baseNode, id: "heading", type: "text", width: 280, height: 60, text: "真实中文预览", fontSize: 24, fontWeight: 650 }], fidelity: "high" };
+  const before = (await workspace.get(bound.project.id).read()).revision;
+  const result = await fetch(`${app.origin}/api/preview?project=${bound.project.id}`, { method: "POST", headers, body: JSON.stringify({ design }) });
+  assert.equal(result.status, 200);
+  const body = await result.json();
+  assert.equal(body.mime, "image/png");
+  assert.equal(Buffer.from(body.base64, "base64").subarray(1, 4).toString(), "PNG");
+  assert.ok(body.quality.issues.some((issue: any) => issue.code === "REFERENCE_REQUIRED"));
+  assert.equal((await workspace.get(bound.project.id).read()).revision, before);
+  const invalid = await fetch(`${app.origin}/api/preview?project=${bound.project.id}`, { method: "POST", headers, body: JSON.stringify({ design: { ...design, referenceAssetId: "missing" } }) });
+  assert.equal(invalid.ok, false);
+});

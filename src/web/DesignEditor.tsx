@@ -1,3 +1,8 @@
+import {
+  RichStyles,
+  QualityInspector,
+  type QualityReport,
+} from "./DesignProperties";
 import { useState, useEffect, useRef } from "react";
 import {
   Square,
@@ -77,6 +82,11 @@ export function DesignEditor({
     [zoom, setZoom] = useState(0.7),
     [error, setError] = useState(""),
     [preview, setPreview] = useState(""),
+    [reference, setReference] = useState(""),
+    [showReference, setShowReference] = useState(false),
+    [previewPending, setPreviewPending] = useState(false),
+    [previewError, setPreviewError] = useState(""),
+    [quality, setQuality] = useState<QualityReport>(),
     [json, setJson] = useState(false),
     [raw, setRaw] = useState(""),
     [dirty, setDirty] = useState(initial.current.dirty),
@@ -98,6 +108,15 @@ export function DesignEditor({
   };
   useEffect(fit, [a.id]);
   useEffect(() => {
+    let live = true;
+    setReference("");
+    if (d.referenceAssetId)
+      api<{ base64: string; mime: string }>("export", project, { assetId: d.referenceAssetId })
+        .then((result) => { if (live) setReference(`data:${result.mime};base64,${result.base64}`); })
+        .catch((error) => { if (live) setError(`参考图读取失败：${error.message}`); });
+    return () => { live = false; };
+  }, [d.referenceAssetId, project]);
+  useEffect(() => {
     if (dirty)
       localStorage.setItem(
         draftKey,
@@ -108,18 +127,32 @@ export function DesignEditor({
   const target = nodes.find((n) => n.id === selected);
   useEffect(() => {
     let live = true;
-    api<{ base64: string; mime: string }>("export", project, {
-      ref: { id: a.id, version: a.version },
-      format: "png",
-    })
-      .then((r) => {
-        if (live) setPreview(`data:${r.mime};base64,${r.base64}`);
-      })
-      .catch((e) => setError(e.message));
+    setPreviewPending(true);
+    const timer = setTimeout(() => {
+      api<{ base64: string; mime: string; quality: QualityReport }>(
+        "preview",
+        project,
+        { design: d },
+      )
+        .then((result) => {
+          if (live) {
+            setPreview(`data:${result.mime};base64,${result.base64}`);
+            setQuality(result.quality);
+            setPreviewError("");
+          }
+        })
+        .catch((error) => {
+          if (live) setPreviewError(error.message);
+        })
+        .finally(() => {
+          if (live) setPreviewPending(false);
+        });
+    }, 250);
     return () => {
       live = false;
+      clearTimeout(timer);
     };
-  }, [a.version, project]);
+  }, [d, project, assets.map((asset) => asset.id + asset.hash).join(",")]);
   useEffect(() => {
     if (!dirty) {
       setD(a.data as unknown as DesignDocument);
@@ -130,10 +163,14 @@ export function DesignEditor({
     const walk = (ns: DesignNode[]): DesignNode[] =>
       ns.map((n) => ({
         ...n,
-        ...(n.id === nodeId ? patch : {}),
+        ...(n.id === nodeId ? {
+          ...patch,
+          ...(patch.x !== undefined ? { x: n.x + patch.x - (nodes.find((item) => item.id === nodeId)?.x ?? n.x) } : {}),
+          ...(patch.y !== undefined ? { y: n.y + patch.y - (nodes.find((item) => item.id === nodeId)?.y ?? n.y) } : {}),
+        } : {}),
         children: walk(n.children),
       }));
-    setD({ ...d, nodes: walk(d.nodes) });
+    setD({ ...d, nodes: walk(d.nodes), visualReview: undefined });
     setDirty(true);
   };
   const save = async () => {
@@ -171,7 +208,7 @@ export function DesignEditor({
       fontSize: 24,
       assetId,
     };
-    setD({ ...d, nodes: [...d.nodes, n] });
+    setD({ ...d, nodes: [...d.nodes, n], visualReview: undefined });
     setSelected(n.id);
     setDirty(true);
   };
@@ -213,6 +250,10 @@ export function DesignEditor({
           </button>
         </div>
         <div className="toolgroup">
+          <button disabled={!reference} aria-pressed={showReference}
+            onClick={() => { setShowReference(!showReference); setJson(false); }}>
+            {showReference ? "查看可编辑设计" : "对照完整参考图"}
+          </button>
           <button onClick={() => add("text")}>
             <Type size={15} />
             文字
@@ -241,6 +282,14 @@ export function DesignEditor({
         </div>
       </div>
       {error && <div className="error">{error}</div>}
+      {previewError && <div className="error">预览未完成：{previewError}</div>}
+      <div className="design-preview-status" aria-live="polite">
+        {previewPending
+          ? "正在更新真实预览…"
+          : previewError
+            ? "请修正设计参数"
+            : `统一渲染 · ${(d.fidelity ?? "draft") === "high" ? "高保真设计" : "结构草稿"}`}
+      </div>
       {exportNotice && <div className="notice">{exportNotice}</div>}
       <div className="design-body">
         <div className="layers">
@@ -267,7 +316,9 @@ export function DesignEditor({
           <button onClick={() => setSelected("")}>选择整个页面</button>
         </div>
         <div className="canvas" ref={canvas}>
-          {json ? (
+          {showReference && !json ? (
+            <img src={reference} alt="完整 UI 视觉参考图" style={{ width: d.viewport.width * zoom, height: d.viewport.height * zoom, objectFit: "contain" }} />
+          ) : json ? (
             <div className="json-edit">
               <textarea
                 aria-label="设计 JSON"
@@ -308,13 +359,12 @@ export function DesignEditor({
                   position: "relative",
                 }}
               >
-                {preview && !dirty ? (
-                  <img className="design-render" src={preview} alt={a.title} />
-                ) : (
-                  <DraftNodes
-                    nodes={layoutNodes(d.nodes)}
-                    assets={assets}
-                    project={project}
+                {preview && (
+                  <img
+                    className="design-render"
+                    style={{ opacity: previewPending ? 0.65 : 1 }}
+                    src={preview}
+                    alt={a.title}
                   />
                 )}
                 {nodes.map((n) => (
@@ -343,6 +393,14 @@ export function DesignEditor({
           )}
         </div>
         <div className="design-properties">
+          <label>完整 UI 参考图
+            <select value={d.referenceAssetId ?? ""} onChange={(e) => {
+              setD({ ...d, referenceAssetId: e.target.value || undefined, visualReview: undefined }); setDirty(true);
+            }}>
+              <option value="">请选择已导入的完整效果图</option>
+              {assets.map((asset) => <option key={asset.id} value={asset.id}>{asset.name}</option>)}
+            </select>
+          </label>
           <h4>{target?.name ?? "整个页面"}</h4>
           <p className="muted">
             {target
@@ -417,6 +475,21 @@ export function DesignEditor({
               )}
             </>
           )}
+          {target && (
+            <RichStyles
+              node={target}
+              onChange={(patch) => update(target.id, patch)}
+            />
+          )}
+          <QualityInspector
+            design={d}
+            quality={quality}
+            onSelect={setSelected}
+            onChange={(patch) => {
+              setD({ ...d, ...patch });
+              setDirty(true);
+            }}
+          />
           <label>
             导出倍率
             <select
@@ -534,69 +607,4 @@ function AssetTile({
       </button>
     </div>
   );
-}
-function DraftNodes({
-  nodes,
-  assets,
-  project,
-}: {
-  nodes: DesignNode[];
-  assets: Asset[];
-  project: string;
-}) {
-  return (
-    <>
-      {nodes.map((n) => (
-        <div
-          key={n.id}
-          style={{
-            position: "absolute",
-            left: n.x,
-            top: n.y,
-            width: n.width,
-            height: n.height,
-            borderRadius: n.radius,
-            overflow: "hidden",
-            background: ["rect", "frame"].includes(n.type) ? n.fill : undefined,
-            color: n.fill,
-            fontSize: n.fontSize ?? 16,
-            whiteSpace: "pre-wrap",
-            lineHeight: 1.45,
-          }}
-        >
-          {n.type === "text" ? (
-            n.text
-          ) : n.type === "vector" ? (
-            <svg width={n.width} height={n.height}>
-              <path d={n.path} fill={n.fill} />
-            </svg>
-          ) : n.type === "image" ? (
-            <AssetImage project={project} assetId={n.assetId!} />
-          ) : null}
-          <DraftNodes nodes={n.children} assets={assets} project={project} />
-        </div>
-      ))}
-    </>
-  );
-}
-function AssetImage({
-  project,
-  assetId,
-}: {
-  project: string;
-  assetId: string;
-}) {
-  const [url, setUrl] = useState("");
-  useEffect(() => {
-    api<{ base64: string }>("export", project, { assetId }).then((r) =>
-      setUrl(`data:image/png;base64,${r.base64}`),
-    );
-  }, [assetId]);
-  return url ? (
-    <img
-      style={{ width: "100%", height: "100%", objectFit: "cover" }}
-      src={url}
-      alt="设计素材"
-    />
-  ) : null;
 }

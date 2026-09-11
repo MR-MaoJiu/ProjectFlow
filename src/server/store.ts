@@ -1,3 +1,4 @@
+import { reviewDesign } from "./design-quality.js";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { randomUUID, createHash } from "node:crypto";
@@ -311,7 +312,10 @@ export class Store {
   }
   validateDesign(data: unknown, s: State) {
     const d = designSchema.parse(data);
+    if (d.referenceAssetId)
+      ensure(s.assets.some((a) => a.id === d.referenceAssetId), "MISSING_ASSET", "参考图必须引用已登记素材");
     let count = 0;
+    let textLength = 0;
     const seen = new Set<string>();
     const walk = (n: DesignNode, depth: number) => {
       ensure(
@@ -321,6 +325,12 @@ export class Store {
       );
       ensure(!seen.has(n.id), "DUPLICATE_NODE", "节点 ID 重复");
       seen.add(n.id);
+      textLength += (n.text ?? "").length;
+      ensure(
+        textLength <= 50000,
+        "DESIGN_LIMIT",
+        "单页文字总量不能超过 50000 字符",
+      );
       if (n.type === "image")
         ensure(
           n.assetId && s.assets.some((a) => a.id === n.assetId),
@@ -546,7 +556,20 @@ export class Store {
             409,
           );
           ensure(a.body.trim().length > 10, "INCOMPLETE", "内容不完整");
-          if (a.kind === "design") this.validateDesign(a.data, s);
+          if (a.kind === "design") {
+            const design = this.validateDesign(a.data, s);
+            if (design.fidelity === "high") {
+              const review = reviewDesign(design, s.assets);
+              ensure(
+                review.ready,
+                "DESIGN_QUALITY",
+                review.issues
+                  .filter((i) => i.severity === "error")
+                  .map((i) => i.message)
+                  .join("；"),
+              );
+            }
+          }
           const c = { ref: p.ref, actor, reason: p.reason, at: now() };
           s.confirmations.push(c);
           result = c;
@@ -791,8 +814,22 @@ export class Store {
             if (n.assetId) assetIds.add(n.assetId);
             n.children.forEach(walk);
           };
-          for (const a of artifacts.filter((a) => a.kind === "design"))
-            this.validateDesign(a.data, s).nodes.forEach(walk);
+          for (const a of artifacts.filter((a) => a.kind === "design")) {
+            const design = this.validateDesign(a.data, s);
+            if (design.fidelity === "high") {
+              const review = reviewDesign(design, s.assets);
+              ensure(
+                review.ready,
+                "DESIGN_QUALITY",
+                review.issues
+                  .filter((i) => i.severity === "error")
+                  .map((i) => i.message)
+                  .join("；"),
+              );
+            }
+            if (design.referenceAssetId) assetIds.add(design.referenceAssetId);
+            design.nodes.forEach(walk);
+          }
           const assets = s.assets.filter((a) => assetIds.has(a.id));
           for (const a of assets)
             ensure(

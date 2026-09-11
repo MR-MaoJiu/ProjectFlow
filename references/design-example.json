@@ -1,1 +1,67 @@
-{"viewport":{"width":390,"height":760},"nodes":[{"id":"page","name":"页面","type":"frame","x":0,"y":0,"width":390,"height":760,"fill":"#ffffff","radius":0,"layout":"vertical","padding":24,"gap":20,"children":[{"id":"heading","name":"页面标题","type":"text","x":0,"y":0,"width":342,"height":45,"fill":"#172033","radius":0,"text":"你的项目，从这里开始","fontSize":24,"layout":"absolute","gap":0,"padding":0,"children":[]},{"id":"description","name":"说明","type":"text","x":0,"y":0,"width":342,"height":70,"fill":"#7a879c","radius":0,"text":"按已确认的 PRD 创建结构化页面，再生成和登记独立素材。","fontSize":16,"layout":"absolute","gap":0,"padding":0,"children":[]}]}],"interactions":"按实际 PRD 补充交互；此文件仅是结构示例。","states":["默认"],"tokens":{"primary":"#2563eb","text":"#172033"}}
+{
+  "viewport": {
+    "width": 390,
+    "height": 760
+  },
+  "nodes": [
+    {
+      "id": "page",
+      "name": "页面",
+      "type": "frame",
+      "x": 0,
+      "y": 0,
+      "width": 390,
+      "height": 760,
+      "fill": "#ffffff",
+      "radius": 0,
+      "layout": "vertical",
+      "padding": 24,
+      "gap": 20,
+      "children": [
+        {
+          "id": "heading",
+          "name": "页面标题",
+          "type": "text",
+          "x": 0,
+          "y": 0,
+          "width": 342,
+          "height": 45,
+          "fill": "#172033",
+          "radius": 0,
+          "text": "你的项目，从这里开始",
+          "fontSize": 24,
+          "layout": "absolute",
+          "gap": 0,
+          "padding": 0,
+          "children": []
+        },
+        {
+          "id": "description",
+          "name": "说明",
+          "type": "text",
+          "x": 0,
+          "y": 0,
+          "width": 342,
+          "height": 70,
+          "fill": "#7a879c",
+          "radius": 0,
+          "text": "按已确认的 PRD 创建结构化页面，再生成和登记独立素材。",
+          "fontSize": 16,
+          "layout": "absolute",
+          "gap": 0,
+          "padding": 0,
+          "children": []
+        }
+      ]
+    }
+  ],
+  "interactions": "这只是结构语法草稿，不是高保真交付。实际设计必须按 high-fidelity-ui.md 补充真实素材与视觉检查。",
+  "states": [
+    "默认"
+  ],
+  "tokens": {
+    "primary": "#2563eb",
+    "text": "#172033"
+  },
+  "fidelity": "draft"
+}

@@ -1,10 +1,11 @@
+import { reviewDesign } from "./design-quality.js";
 import http from "node:http";
 import path from "node:path";
 import { promises as fs } from "node:fs";
 import { randomBytes, timingSafeEqual } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { Store, hash } from "./store.js";
-import { renderDesign } from "./render.js";
+import { renderDesign, renderDocument } from "./render.js";
 import { ensure, AppError } from "./errors.js";
 export class Workspace {
   stores = new Map<string, Store>();
@@ -104,7 +105,16 @@ export async function startWeb(
               body.key,
               "用户",
             );
-          else if (route === "export" && req.method === "POST") {
+          else if (route === "preview" && req.method === "POST") {
+            const state = await store.read();
+            const design = store.validateDesign(body.design, state);
+            const rendered = await renderDocument(store, design);
+            result = {
+              base64: rendered.bytes.toString("base64"),
+              mime: rendered.mime,
+              quality: reviewDesign(design, state.assets),
+            };
+          } else if (route === "export" && req.method === "POST") {
             if (body.assetId) {
               const s = await store.read();
               const a = s.assets.find((a) => a.id === body.assetId);

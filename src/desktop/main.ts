@@ -123,7 +123,7 @@ async function command(method: string, args: any) {
         .getApprovals()
         .filter((r) => r.params.threadId === threadId),
       busy: sending,
-      version: "0.3.0",
+      version: "0.4.0",
     };
   }
   if (method === "connect") {

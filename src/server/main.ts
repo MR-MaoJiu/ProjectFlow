@@ -1,3 +1,4 @@
+import { reviewDesign } from "./design-quality.js";
 import { summaryWidget } from "./widget.js";
 import { hash } from "./store.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -17,7 +18,7 @@ const arg = (name: string) => {
 const root = arg("--project");
 if (root) await workspace.bind(root, arg("--name"));
 const web = await startWeb(workspace, undefined, Number(arg("--port") ?? 0));
-const mcp = new McpServer({ name: "projectflow", version: "0.2.0" });
+const mcp = new McpServer({ name: "projectflow", version: "0.4.0" });
 const result = (data: unknown) => ({
   content: [{ type: "text" as const, text: JSON.stringify(data) }],
 });
@@ -157,6 +158,14 @@ mcp.registerTool(
       };
     }
     ensure(data, "NOT_FOUND", "对象不存在");
+    if (a.section === "artifact" && (data as any).kind === "design")
+      data = {
+        ...(data as object),
+        quality: reviewDesign(
+          store.validateDesign((data as any).data, s),
+          s.assets,
+        ),
+      };
     return result(data);
   }),
 );

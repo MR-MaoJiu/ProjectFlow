@@ -38,7 +38,11 @@ export function RequestForm({
   const [title, setTitle] = useState(
       `${labels[stage]}：${selected?.title ?? "继续本次迭代"}`,
     ),
-    [instruction, setInstruction] = useState(""),
+    [instruction, setInstruction] = useState(
+      stage === "design"
+        ? "根据已确认 PRD 创建可直接开发的高保真 UI。先规划素材和图标，生成完整高保真 UI 参考图并登记 referenceAssetId，再按图重建。自动生成并补齐缺失的独立产品图、插画和统一图标，避免线框或几何占位。文字与控件保持可编辑节点。逐页查看预览，修正溢出、对齐与细节，并提交素材和视觉复核记录。"
+        : "",
+    ),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
     [bundle, setBundle] = useState(

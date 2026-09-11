@@ -21,6 +21,7 @@ Codex 负责推理与执行，本插件只提供项目资产、阶段规则、�
 - 调研：阅读 [projectflow-research](../projectflow-research/SKILL.md)。
 - 需求整理：阅读 [projectflow-requirements](../projectflow-requirements/SKILL.md)。
 - PRD：阅读 [projectflow-prd](../projectflow-prd/SKILL.md)。
+- 涉及 UI 的规划应列出所需图标和素材；设计默认执行“完整效果图 → 独立素材自动补齐 → 可编辑重建 → 对照验收”。
 - UI 设计：阅读 [projectflow-design](../projectflow-design/SKILL.md)。
 - 开发交付：阅读 [projectflow-handoff](../projectflow-handoff/SKILL.md)。
 - 编码：阅读 [projectflow-coding](../projectflow-coding/SKILL.md)。

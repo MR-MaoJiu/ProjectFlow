@@ -11,3 +11,7 @@ Source: https://github.com/openai/codex
 License: licenses/CODEX-LICENSE.txt
 Codex runtime binaries are downloaded during desktop preparation, not stored in this source repository.
 Electron, Chromium, Sharp and other dependencies retain their distributed licenses.
+
+Noto Sans SC: SIL Open Font License 1.1
+Source: https://github.com/google/fonts/tree/main/ofl/notosanssc
+License: assets/fonts/OFL.txt
