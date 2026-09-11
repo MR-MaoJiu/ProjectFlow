@@ -34,7 +34,7 @@ export function DesktopPanel({ project, onClose, initialText = "" }: Props) {
     void refresh();
     const timer = setInterval(() => void refresh(), 800);
     return () => clearInterval(timer);
-  }, []);
+  }, [project]);
   useEffect(() => {
     if (initialText) setText(initialText);
   }, [initialText]);
@@ -115,6 +115,15 @@ export function DesktopPanel({ project, onClose, initialText = "" }: Props) {
           <MessageSquarePlus size={15} />
         </button>
       </div>
+      <div className="codex-execution-mode">
+        <label>
+          <span><strong>自动运行</strong><small>{state.autoRun ? "已开启 · Codex 自动审批" : "已关闭 · 手动审批"}</small></span>
+          <input type="checkbox" role="switch" aria-label="自动运行" checked={state.autoRun === true}
+            disabled={busy || running || !!state.approvals?.length || state.autoRun === undefined}
+            onChange={(e) => void action(() => bridge.setAutoRun(project, e.target.checked))} />
+        </label>
+        <p>{running ? "先停止当前任务，再切换模式。" : "按项目记忆，下次执行生效。"} 自动审批处理执行权限；需要填写的信息和审批拒绝仍会显示。</p>
+      </div>
       <div className="codex-account">
         {state.account?.account
           ? `已登录 · ${state.account.account.type === "chatgpt" ? "ChatGPT 账户" : state.account.account.type}`
@@ -188,6 +197,12 @@ export function DesktopPanel({ project, onClose, initialText = "" }: Props) {
                 "执行出现错误，请检查连接"}
             </div>
           ))}
+        {events.filter((e: any) => e.method === "item/autoApprovalReview/completed").slice(-4).map((e: any) => (
+          <div className={e.params.review?.status === "denied" ? "error" : "notice"} key={e.sequence}>
+            自动审批 · {({ approved: "已允许", denied: "已拒绝", timedOut: "超时", aborted: "已取消" } as Record<string,string>)[e.params.review?.status] ?? e.params.review?.status}
+            {e.params.review?.rationale && <p>{e.params.review.rationale}</p>}
+          </div>
+        ))}
         {state.approvals?.map((r: any) => (
           <div className="approval" key={r.requestId}>
             <h4>

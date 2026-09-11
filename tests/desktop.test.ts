@@ -101,3 +101,19 @@ test("MCP 授权表单严格校验用户选择，不使用默认值自动授权"
     {},
   );
 });
+
+test("自动运行按项目保存、重启恢复并可关闭，不使用全局权限配置", async (t) => {
+  const { ExecutionSettings, executionPolicy } = await import("../src/desktop/execution-settings");
+  const dir = await mkdtemp(path.join(os.tmpdir(), "pf-execution-settings-"));
+  t.after(() => rm(dir, { recursive: true, force: true }));
+  const settings = new ExecutionSettings(dir);
+  assert.equal(await settings.get("/project/a"), false);
+  await settings.set("/project/a", true);
+  assert.equal(await new ExecutionSettings(dir).get("/project/a"), true);
+  assert.equal(await settings.get("/project/b"), false);
+  assert.deepEqual(executionPolicy(await settings.get("/project/a")), { approvalPolicy: "on-request", approvalsReviewer: "auto_review" });
+  await settings.set("/project/a", false);
+  assert.deepEqual(executionPolicy(await settings.get("/project/a")), { approvalPolicy: "on-request", approvalsReviewer: "user" });
+  await assert.rejects(() => settings.set("/project/a", "true"), /布尔值/);
+  assert.equal(await settings.get("/project/a"), false);
+});

@@ -4,6 +4,9 @@ import { fileURLToPath } from "node:url";
 import { promises as fs } from "node:fs";
 import { Workspace, startWeb } from "../server/http.js";
 import { CodexRuntime } from "./codex.js";
+import { ExecutionSettings, executionPolicy } from "./execution-settings.js";
+const settings = new ExecutionSettings(path.join(app.getPath("userData"), "execution-settings"));
+let changingExecutionMode = false;
 const here = path.dirname(fileURLToPath(import.meta.url));
 let window: BrowserWindow | undefined;
 const workspace = new Workspace();
@@ -78,8 +81,7 @@ async function getSession(project: string) {
   }
   const params = {
     cwd: store.root,
-    approvalPolicy: "on-request",
-    approvalsReviewer: "user",
+    ...executionPolicy(await settings.get(store.root)),
     sandbox: "workspace-write",
   };
   const sandboxParams = params;
@@ -109,6 +111,7 @@ async function command(method: string, args: any) {
   if (method === "status") {
     const threadId = sessions.get(args.project)?.threadId;
     return {
+      autoRun: args.project ? await settings.get(workspace.get(args.project).root) : false,
       connected: runtime.connected,
       account,
       active,
@@ -123,8 +126,16 @@ async function command(method: string, args: any) {
         .getApprovals()
         .filter((r) => r.params.threadId === threadId),
       busy: sending,
-      version: "0.4.0",
+      version: "0.4.1",
     };
+  }
+  if (method === "setAutoRun") {
+    const store = workspace.get(args.project);
+    if (sending || changingExecutionMode || active?.status === "running" || runtime.getApprovals().length)
+      throw new Error("请先停止当前任务并处理待回答事项，再切换运行模式");
+    changingExecutionMode = true;
+    try { return { autoRun: await settings.set(store.root, args.enabled) }; }
+    finally { changingExecutionMode = false; }
   }
   if (method === "connect") {
     await fs.access(executable);
@@ -191,6 +202,7 @@ async function command(method: string, args: any) {
       throw new Error("请输入有效任务内容");
     if (
       sending ||
+      changingExecutionMode ||
       active?.status === "running" ||
       runtime.getApprovals().length
     )
@@ -213,6 +225,7 @@ async function command(method: string, args: any) {
       const result = await runtime.call("turn/start", {
         threadId: session.threadId,
         input: [{ type: "text", text: context, text_elements: [] }],
+        ...executionPolicy(await settings.get(store.root)),
         cwd: store.root,
       });
       active.turnId = result.turn.id;

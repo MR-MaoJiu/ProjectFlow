@@ -5,6 +5,7 @@ declare global {
       openProject: () => Promise<unknown>;
       connect: (project: string) => Promise<any>;
       status: (project: string) => Promise<any>;
+      setAutoRun: (project: string, enabled: boolean) => Promise<{ autoRun: boolean }>;
       login: () => Promise<any>;
       send: (project: string, text: string) => Promise<any>;
       interrupt: () => Promise<any>;
