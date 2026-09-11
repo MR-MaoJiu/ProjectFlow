@@ -14,7 +14,7 @@ args = parser.parse_args()
 source = Path(__file__).resolve().parents[1]
 target_parent = Path.home()/'.agents/plugins/plugins'
 target = target_parent/'projectflow'
-for name in ['.codex-plugin/plugin.json','dist/server.mjs','node_modules/@modelcontextprotocol/sdk/package.json']:
+for name in ['.codex-plugin/plugin.json','dist/server.mjs','node_modules/@modelcontextprotocol/sdk/package.json','LICENSE','NOTICE']:
     if not (source/name).is_file():
         sys.exit('缺少运行文件：'+name+'。请先 npm ci 并 npm run build，或使用完整分发包。')
 if not args.helper.is_file():
@@ -25,7 +25,7 @@ if args.dry_run:
 if target.exists():
     sys.exit('目标插件目录已存在。为避免覆盖，本脚本停止；请使用 Codex 的插件更新流程。')
 subprocess.run([sys.executable,str(args.helper),'projectflow','--path',str(target_parent),'--with-marketplace'],check=True)
-for name in ['.codex-plugin','.mcp.json','skills','references','templates','assets','dist','node_modules','package.json','package-lock.json','README.md']:
+for name in ['.codex-plugin','.mcp.json','skills','references','templates','assets','dist','node_modules','package.json','package-lock.json','README.md','LICENSE','NOTICE','licenses']:
     src=source/name
     if src.is_dir():shutil.copytree(src,target/name,dirs_exist_ok=True)
     else:shutil.copy2(src,target/name)
