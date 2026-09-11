@@ -505,6 +505,8 @@ export function App() {
                     key={a.id}
                     project={project}
                     artifact={a}
+                    isConfirmed={confirmed(state, a)}
+                    onConfirm={() => { setName("已审阅当前设计，同意作为开发交付基线"); setModal("confirm"); }}
                     assets={state.assets}
                     onSave={save}
                     mutate={mutate}
@@ -648,7 +650,7 @@ export function App() {
                   <span>影响下游</span>
                   <strong>{ctx.affected[a.id]?.length ?? 0} 项</strong>
                 </div>
-                <button
+                {a.kind === "design" ? <p className="muted">请使用画布顶部的“确认设计”按钮完成审阅。</p> : <button
                   className="wide"
                   disabled={confirmed(state, a)}
                   onClick={() => {
@@ -658,7 +660,7 @@ export function App() {
                 >
                   <Check size={15} />
                   确认当前版本
-                </button>
+                </button>}
               </section>
               <section>
                 <h4>
@@ -905,7 +907,7 @@ export function App() {
                 }
               }}
             >
-              保存
+              {modal === "confirm" ? "确认当前版本" : "保存"}
             </button>
           </footer>
         </Modal>
@@ -937,6 +939,18 @@ export function App() {
               {issue}
             </p>
           ))}
+          {current.stage === "design" && latestArtifacts(state, iteration).filter((row) => row.kind === "design" && !confirmed(state, row)).length > 0 && (
+            <div className="confirmation-links">
+              <p className="muted">逐份查看设计，并在画布顶部确认当前版本。</p>
+              {latestArtifacts(state, iteration).filter((row) => row.kind === "design" && !confirmed(state, row)).map((row) => (
+                <button key={row.id} className="wide" onClick={() => {
+                  navigate("design"); setSelected(row.id); setModal(""); setDesktopOpen(false);
+                }}>
+                  <span>{row.title} · v{row.version}</span><span>查看并确认 <ArrowRight size={14} /></span>
+                </button>
+              ))}
+            </div>
+          )}
           <footer>
             <button onClick={() => setModal("")}>稍后</button>
             <button

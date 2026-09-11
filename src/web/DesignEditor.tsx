@@ -32,6 +32,8 @@ interface Props {
   project: string;
   artifact: ArtifactVersion;
   assets: Asset[];
+  isConfirmed: boolean;
+  onConfirm: () => void;
   onSave: (args: Record<string, unknown>) => Promise<ArtifactVersion>;
   mutate: (op: string, args: unknown) => Promise<any>;
 }
@@ -46,6 +48,8 @@ export function DesignEditor({
   artifact: a,
   assets,
   onSave,
+  isConfirmed,
+  onConfirm,
   mutate,
 }: Props) {
   const draftKey = `projectflow-design:${a.id}`;
@@ -279,6 +283,14 @@ export function DesignEditor({
             <Save size={15} />
             保存设计
           </button>
+          <button
+            className={!dirty && !isConfirmed ? "primary" : ""}
+            disabled={dirty || isConfirmed || previewPending || !!previewError}
+            title={dirty ? "请先保存设计，再确认已保存的版本" : "审阅并确认当前设计版本"}
+            onClick={onConfirm}
+          >
+            {isConfirmed ? `v${a.version} 已确认` : `确认设计 v${a.version}`}
+          </button>
         </div>
       </div>
       {error && <div className="error">{error}</div>}
@@ -290,6 +302,7 @@ export function DesignEditor({
             ? "请修正设计参数"
             : `统一渲染 · ${(d.fidelity ?? "draft") === "high" ? "高保真设计" : "结构草稿"}`}
       </div>
+      {dirty && <div className="design-preview-status">有未保存的修改，请先保存设计再确认。</div>}
       {exportNotice && <div className="notice">{exportNotice}</div>}
       <div className="design-body">
         <div className="layers">
