@@ -8,6 +8,9 @@ import {
   MessageSquarePlus,
   ShieldCheck,
   LoaderCircle,
+  ChevronDown,
+  Check,
+  ShieldAlert,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 interface Props {
@@ -115,15 +118,26 @@ export function DesktopPanel({ project, onClose, initialText = "" }: Props) {
           <MessageSquarePlus size={15} />
         </button>
       </div>
-      <div className="codex-execution-mode">
-        <label>
-          <span><strong>自动运行</strong><small>{state.autoRun ? "已开启 · Codex 自动审批" : "已关闭 · 手动审批"}</small></span>
-          <input type="checkbox" role="switch" aria-label="自动运行" checked={state.autoRun === true}
-            disabled={busy || running || !!state.approvals?.length || state.autoRun === undefined}
-            onChange={(e) => void action(() => bridge.setAutoRun(project, e.target.checked))} />
-        </label>
-        <p>{running ? "先停止当前任务，再切换模式。" : "按项目记忆，下次执行生效。"} 自动审批处理执行权限；需要填写的信息和审批拒绝仍会显示。</p>
-      </div>
+      <section className={`codex-execution-mode ${state.autoRun ? "is-auto" : ""}`} aria-label="执行权限">
+        <div className="execution-mode-row">
+          <span className="execution-mode-symbol" aria-hidden="true"><ShieldCheck size={18} strokeWidth={1.7} /></span>
+          <div className="execution-mode-copy">
+            <strong>自动运行</strong>
+            <span>{state.autoRun ? "由 Codex 审核执行权限" : "执行前由你审核权限"}</span>
+          </div>
+          <span className="execution-mode-state">{state.autoRun === undefined ? "读取中" : state.autoRun ? "已开启" : "已关闭"}</span>
+          <label className="execution-switch">
+            <input type="checkbox" role="switch" aria-label="自动运行" checked={state.autoRun === true}
+              disabled={busy || running || !!state.approvals?.length || state.autoRun === undefined}
+              onChange={(e) => void action(() => bridge.setAutoRun(project, e.target.checked))} />
+            <span className="execution-switch-track" aria-hidden="true"><span /></span>
+          </label>
+        </div>
+        <details className="execution-mode-help">
+          <summary><span>{running ? "任务进行中，结束后可切换" : state.approvals?.length ? "处理待回答事项后可切换" : "仅对当前项目生效"}</span><ChevronDown size={13} /></summary>
+          <p>选择会自动保存，下次执行生效。需要你填写的信息和未通过的审核仍会显示。</p>
+        </details>
+      </section>
       <div className="codex-account">
         {state.account?.account
           ? `已登录 · ${state.account.account.type === "chatgpt" ? "ChatGPT 账户" : state.account.account.type}`
@@ -197,12 +211,19 @@ export function DesktopPanel({ project, onClose, initialText = "" }: Props) {
                 "执行出现错误，请检查连接"}
             </div>
           ))}
-        {events.filter((e: any) => e.method === "item/autoApprovalReview/completed").slice(-4).map((e: any) => (
-          <div className={e.params.review?.status === "denied" ? "error" : "notice"} key={e.sequence}>
-            自动审批 · {({ approved: "已允许", denied: "已拒绝", timedOut: "超时", aborted: "已取消" } as Record<string,string>)[e.params.review?.status] ?? e.params.review?.status}
-            {e.params.review?.rationale && <p>{e.params.review.rationale}</p>}
-          </div>
-        ))}
+        {events.filter((e: any) => e.method === "item/autoApprovalReview/completed").slice(-4).map((e: any) => {
+          const approved = e.params.review?.status === "approved";
+          const label = ({ approved: "已允许", denied: "未通过", timedOut: "审核超时", aborted: "已取消" } as Record<string, string>)[e.params.review?.status] ?? "审核已结束";
+          return (
+            <details className={`approval-result ${approved ? "is-approved" : "needs-attention"}`} key={e.sequence}>
+              <summary>
+                <span className="approval-result-icon" aria-hidden="true">{approved ? <Check size={14} /> : <ShieldAlert size={14} />}</span>
+                <span>自动审核</span><strong>{label}</strong><ChevronDown size={14} className="approval-result-chevron" />
+              </summary>
+              <p>{e.params.review?.rationale || "运行服务未提供更多说明。"}</p>
+            </details>
+          );
+        })}
         {state.approvals?.map((r: any) => (
           <div className="approval" key={r.requestId}>
             <h4>

@@ -80,7 +80,7 @@ export class CodexRuntime extends EventEmitter {
         clientInfo: {
           name: "projectflow_desktop",
           title: "ProjectFlow",
-          version: "0.4.1",
+          version: "0.4.2",
         },
         capabilities: { experimentalApi: false },
       });
