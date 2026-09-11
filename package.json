@@ -1,0 +1,62 @@
+{
+  "name": "projectflow",
+  "version": "0.3.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "build": "tsc --noEmit && vite build && esbuild src/server/main.ts --bundle --platform=node --format=esm --packages=external --outfile=dist/server.mjs && esbuild src/server/library.ts --bundle --platform=node --format=esm --packages=external --outfile=dist/core.mjs && esbuild src/desktop/main.ts --bundle --platform=node --format=esm --packages=external --outfile=dist-desktop/main.mjs && esbuild src/desktop/preload.ts --bundle --platform=node --format=cjs --external:electron --outfile=dist-desktop/preload.cjs",
+    "test": "node --import tsx --test tests/*.test.ts",
+    "start": "node dist/server.mjs --web",
+    "mcp": "node dist/server.mjs",
+    "dev": "vite --host 127.0.0.1",
+    "package": "node scripts/package.mjs",
+    "format": "prettier --write src tests scripts vite.config.ts",
+    "desktop": "electron .",
+    "desktop:mac": "electron-builder --mac --arm64",
+    "desktop:win": "electron-builder --win --x64",
+    "desktop:prepare": "node scripts/prepare-desktop.mjs",
+    "icons": "node scripts/desktop-icons.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "ajv": "^8.20.0",
+    "lucide-react": "^0.468.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-markdown": "^10.0.0",
+    "remark-gfm": "^4.0.0",
+    "sharp": "^0.34.0",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.51.0",
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "electron": "^44.3.0",
+    "electron-builder": "^26.15.3",
+    "esbuild": "^0.25.0",
+    "prettier": "^3.9.6",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0",
+    "vite": "^6.0.0"
+  },
+  "main": "dist-desktop/main.mjs",
+  "description": "Codex 驱动的本地全流程项目工作台",
+  "author": {
+    "name": "MR-MaoJiu",
+    "url": "https://github.com/MR-MaoJiu/ProjectFlow"
+  },
+  "license": "MIT",
+  "homepage": "https://github.com/MR-MaoJiu/ProjectFlow",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/MR-MaoJiu/ProjectFlow.git"
+  },
+  "bugs": {
+    "url": "https://github.com/MR-MaoJiu/ProjectFlow/issues"
+  }
+}

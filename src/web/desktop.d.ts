@@ -1,0 +1,19 @@
+export {};
+declare global {
+  interface Window {
+    projectflowDesktop?: {
+      openProject: () => Promise<unknown>;
+      connect: (project: string) => Promise<any>;
+      status: (project: string) => Promise<any>;
+      login: () => Promise<any>;
+      send: (project: string, text: string) => Promise<any>;
+      interrupt: () => Promise<any>;
+      answer: (
+        requestId: string,
+        decision: string,
+        answers: Record<string, string>,
+      ) => Promise<any>;
+      newConversation: (project: string) => Promise<any>;
+    };
+  }
+}

@@ -1,0 +1,47 @@
+appId: com.projectflow.desktop
+productName: ProjectFlow
+asar: false
+npmRebuild: false
+directories:
+  output: desktop-installers
+files:
+  - dist/**/*
+  - dist-desktop/**/*
+  - skills/**/*
+  - references/**/*
+  - templates/**/*
+  - assets/**/*
+  - LICENSE
+  - NOTICE
+  - licenses/**/*
+  - package.json
+  - node_modules/**/*
+  - '!node_modules/electron/**/*'
+  - '!node_modules/electron-builder/**/*'
+  - '!node_modules/@playwright/**/*'
+mac:
+  icon: build/icon.icns
+  category: public.app-category.developer-tools
+  identity: null
+  target:
+    - target: dmg
+      arch: [arm64]
+  extraResources:
+    - from: desktop-resources/darwin-arm64
+      to: codex-runtime
+win:
+  icon: build/icon.ico
+  target:
+    - target: nsis
+      arch: [x64]
+  signAndEditExecutable: false
+  extraResources:
+    - from: desktop-resources/win32-x64
+      to: codex-runtime
+    - from: desktop-resources/sharp-win32-x64
+      to: app/node_modules/@img/sharp-win32-x64
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+artifactName: ProjectFlow-${version}-${os}-${arch}.${ext}

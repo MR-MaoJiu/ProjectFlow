@@ -1,0 +1,33 @@
+# 依赖、构建产物和平台运行程序
+node_modules/
+dist/
+dist-desktop/
+desktop-resources/
+desktop-installers/
+release/
+coverage/
+playwright-report/
+test-results/
+build/icon.iconset/
+*.dmg
+*.exe
+*.zip
+*.tgz
+*.blockmap
+
+# 项目数据、会话和本机配置不公开
+.projectflow/
+.codex/
+.agents/
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.log
+.DS_Store
+._*
+*.tmp
+.npmrc

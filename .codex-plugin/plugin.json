@@ -1,0 +1,30 @@
+{
+  "name": "projectflow",
+  "version": "0.3.0",
+  "description": "以 Codex 为执行核心的本地全流程项目工作台。",
+  "author": {
+    "name": "MR-MaoJiu",
+    "url": "https://github.com/MR-MaoJiu/ProjectFlow"
+  },
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "ProjectFlow",
+    "shortDescription": "从立项到运营，让 Codex 贯穿项目全流程。",
+    "longDescription": "本地项目资产、版本化 PRD、结构化 UI 与切图、固定开发交付包、测试证据和运营反馈。Codex 执行，工作台编辑与查看。",
+    "developerName": "ProjectFlow",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "使用 ProjectFlow 初始化当前项目",
+      "打开 ProjectFlow 项目工作台",
+      "继续 ProjectFlow 中待处理的请求"
+    ]
+  },
+  "license": "MIT",
+  "homepage": "https://github.com/MR-MaoJiu/ProjectFlow",
+  "repository": "https://github.com/MR-MaoJiu/ProjectFlow"
+}

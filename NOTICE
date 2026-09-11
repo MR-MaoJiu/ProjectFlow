@@ -1,0 +1,13 @@
+ProjectFlow
+Copyright (c) 2026 MR-MaoJiu
+Project source: https://github.com/MR-MaoJiu/ProjectFlow
+License: MIT (see LICENSE)
+
+使用、修改、商用和再分发时，请保留 LICENSE 中的版权声明（含 GitHub 项目地址）与许可文本。
+第三方软件保留各自许可证；ProjectFlow 的 MIT 许可不替代这些第三方许可或服务条款。
+
+Codex runtime: OpenAI Codex 0.154.0, Apache-2.0
+Source: https://github.com/openai/codex
+License: licenses/CODEX-LICENSE.txt
+Codex runtime binaries are downloaded during desktop preparation, not stored in this source repository.
+Electron, Chromium, Sharp and other dependencies retain their distributed licenses.
